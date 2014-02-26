@@ -1,7 +1,7 @@
-AynchronousTCPListener
+Aynchronous TcpListener
 ======================
 
-Example of an asynchronous TCP server and clients using async/await.
+Example of an asynchronous TCP server and clients using C# and async/await.
 
 The server populates these performance counters:
 
