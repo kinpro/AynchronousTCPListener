@@ -70,34 +70,30 @@ namespace TCPServer
             _connected.Increment();
             var local = client.Client.LocalEndPoint.ToString();
             Console.WriteLine("Connected " + local);
-            StreamReader sr = null;
-            StreamWriter sw = null;
             try
             {
                 var stream = client.GetStream();
-                sr = new StreamReader(stream, Encoding.UTF8);
-                sw = new StreamWriter(stream, Encoding.UTF8);
+                using(var sr = new StreamReader(stream, Encoding.UTF8))
+                using(var sw = new StreamWriter(stream, Encoding.UTF8))
                 while (!cancel.IsCancellationRequested && client.Connected)
                 {
-                    var readTask = sr.ReadLineAsync();
-                    var timeoutTask = Task.Delay(5000);
+                    //using(var sr = new StreamReader(stream, Encoding.UTF8))
+                    //using (var sw = new StreamWriter(stream, Encoding.UTF8))
+                    {
+                        var msg = await sr.ReadLineAsync();;
 
-                    await Task.WhenAny(readTask, timeoutTask);
-                    if (!readTask.IsCompleted)
-                        continue;
+                        if (msg == null)
+                            continue;
 
-                    var msg = await readTask;
+                        _inMessages.Increment();
+                        _inBytes.IncrementBy(msg.Length);
 
-                    if (msg == null)
-                        continue;
+                        await sw.WriteLineAsync(msg);
+                        await sw.FlushAsync();
 
-                    _inMessages.Increment();
-                    _inBytes.IncrementBy(msg.Length);
-                    //Console.WriteLine("Client says: " + msg);
-                    await sw.WriteLineAsync(msg);
-                    await sw.FlushAsync();
-                    _outMessages.Increment();
-                    _outBytes.IncrementBy(msg.Length);
+                        _outMessages.Increment();
+                        _outBytes.IncrementBy(msg.Length);
+                    }
                 }
             }
             catch (Exception aex)
@@ -108,11 +104,6 @@ namespace TCPServer
             finally
             {
                 _connected.Decrement();
-
-                if (sr != null)
-                    sr.Dispose();
-                if (sw != null)
-                    sw.Dispose();
             }
             Console.WriteLine("Disconnected " + local);
         }
